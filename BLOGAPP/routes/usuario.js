@@ -4,6 +4,7 @@ const mongoose = require('mongoose')
 require("../models/Usuario")
 const Usuario = mongoose.model("usuarios")
 const bcrypt = require("bcryptjs")
+const passport = require("passport")
 
 router.get("/registro", (req, res)=>{
     res.render("usuarios/registro")
@@ -24,22 +25,23 @@ router.post("/registro", (req, res)=>{
         erros.push({texto:"Senha inválida"})
     }    
 
-    if(!req.body.senha.length <4){
+    if(req.body.senha.length < 4){
         erros.push({texto:"Senha muito curta"})
     }
 
-    if(!req.body.senha != req.body.senha2){
+    if(req.body.senha != req.body.senha2){
         erros.push({texto:"As senhas são diferentes "})
     }
 
     if(erros.length > 0){
 
         res.render("usuarios/registro", {erros: erros})
+        
     }else{
 
        Usuario.findOne({email: req.body.email}).lean().then((usuario)=>{
             if(usuario){
-                req.flash("error__msg", "Ja exite uma conta com esse e-mail")
+                req.flash("error_msg", "Ja exite uma conta com esse e-mail")
                 res.redirect("/usuarios/registro")
             }else{
 
@@ -76,5 +78,26 @@ router.post("/registro", (req, res)=>{
        })
     }
 })
+
+router.get("/login", (req, res)=>{
+    res.render("usuarios/login")
+})
+
+router.post("/login", (req, res, next) => {
+    passport.authenticate("local", function(err, user, info) {
+        if (err) { return next(err); }
+        if (!user) { 
+            console.log("Autenticação falhou:", info.message); 
+            return res.redirect("/usuarios/login");
+        }
+        req.logIn(user, function(err) {
+            if (err) { return next(err); }
+            console.log("Autenticação bem-sucedida!");
+            return res.redirect("/");
+        });
+    })(req, res, next);
+});
+
+
 
 module.exports = router
